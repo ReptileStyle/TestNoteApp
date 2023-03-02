@@ -166,7 +166,7 @@ fun AudioNoteContainer(
             maxLines = 1
         )
         Text(
-            text = formatMilli(audioNote.date), //audioNote.date.format(DateTimeFormatter.ofPattern("dd.MM.yyyy в HH:mm")),
+            text = audioNote.date, //audioNote.date.format(DateTimeFormatter.ofPattern("dd.MM.yyyy в HH:mm")),
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.constrainAs(date) {

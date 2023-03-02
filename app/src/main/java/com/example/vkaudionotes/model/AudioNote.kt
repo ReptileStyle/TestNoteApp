@@ -13,7 +13,6 @@ data class AudioNote(
     @PrimaryKey(autoGenerate = true)
     var id: Int = 0,
     val length:String = "0:00",
-    val length2: Long =-1L,
-    val date: Long = -1L,
+    val date: String = "неизвестно",
     val title: String = "Default title",
 ) : Parcelable

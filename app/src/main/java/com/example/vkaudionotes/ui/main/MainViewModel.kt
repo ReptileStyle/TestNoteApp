@@ -29,7 +29,9 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import java.io.File
 import java.time.Instant
+import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -86,7 +88,9 @@ class MainViewModel @Inject constructor(
         try {
             recorder.stop()
             val duration = formatMilli(player.getFileDuration(File(context.dataDir.path, newNote!!.title)).toLong())
-            newNote = newNote!!.copy(length = duration)
+
+            newNote = newNote!!.copy(length = duration, date = LocalDateTime.now().format(
+                DateTimeFormatter.ofPattern("dd.MM.yyyy в HH:mm")),)
             insertNote(newNote!!)
             newNote = null
         }catch (e:Exception){
@@ -97,7 +101,6 @@ class MainViewModel @Inject constructor(
     fun changeTitleOfNote(note: AudioNote,title: String){
         File(context.dataDir.path,note.title).renameTo(File(context.dataDir.path,title))
         updateNote(note.copy(title = title))
-
     }
 
     fun playAudio(
