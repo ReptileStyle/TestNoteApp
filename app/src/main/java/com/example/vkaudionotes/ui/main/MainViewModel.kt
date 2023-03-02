@@ -6,7 +6,10 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.media.MediaRecorder
 import android.media.audiofx.Visualizer
+import android.os.Build
+import android.os.FileObserver
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,9 +19,8 @@ import com.example.vkaudionotes.audio.visualizer.VisualizerData
 import com.example.vkaudionotes.model.AudioFinishedException
 import com.example.vkaudionotes.model.AudioNote
 import com.example.vkaudionotes.ui.components.util.formatMilli
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import java.io.File
 import java.time.Instant
 import java.time.ZoneId
@@ -33,7 +35,7 @@ class MainViewModel(
 
 
     private val recorder by lazy {
-        AndroidAudioRecorder(context.applicationContext)
+        AndroidAudioRecorder(context.applicationContext,viewModelScope)
     }
 
     private val player by lazy {
@@ -48,6 +50,73 @@ class MainViewModel(
 
     var playerJob: Job? = null
 
+
+    val fileObserver = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+        object : FileObserver(context.dataDir.path, ALL_EVENTS){
+            override fun onEvent(event: Int, path: String?) {
+                when(event){
+                    CREATE -> {
+                        viewModelScope.launch {
+                            while (isRecording.last() == true){
+                                Log.d("MainVM", "delay")
+                                delay(500)
+                            }
+                            if (path != null) {
+                                Log.d("MainVM", path)
+                                myAudioNotes.add(
+                                    processAudioFileByPath(path)
+                                )
+                            }
+                        }
+                    }
+                    DELETE -> {
+                        if(path!=null){
+                            Log.d("MainVM",path)
+                            myAudioNotes.removeIf { it.title==path }
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        object : FileObserver(context.dataDir, ALL_EVENTS){
+            override fun onEvent(event: Int, path: String?) {
+                when(event){
+                    CREATE -> {
+                        viewModelScope.launch {
+                            while(isRecording.last()==true) delay(500)
+                            if(path!=null) {
+                                Log.d("MainVM",path)
+                                myAudioNotes.add(
+                                    processAudioFileByPath(path)
+                                )
+                            }
+                        }
+                    }
+                    DELETE -> {
+
+                        if(path!=null){
+                            Log.d("MainVM",path)
+                            myAudioNotes.removeIf { it.title==path }
+                        }
+
+                    }
+                }
+            }
+        }
+    }
+
+    private fun processAudioFileByPath(path:String):AudioNote{
+        return AudioNote(
+            length = formatMilli(player.getFileDuration(File(context.dataDir.path,path)).toLong()),
+            title = path,
+            date = Instant.ofEpochMilli(File(context.dataDir.path, path).lastModified())
+                .atZone(
+                    ZoneId.systemDefault()
+                ).toLocalDateTime()
+        )
+    }
+
     init {
         //get names
         val myAudioFileNames = context.dataDir.listFiles()?.map { file ->
@@ -58,33 +127,27 @@ class MainViewModel(
 
         myAudioFileNames.forEach {
 
-            val duration = player.getFileDuration(File(context.dataDir.path, it))
+            Log.d("MainVM",it)
             myAudioNotes.add(
-                AudioNote(
-                    length = formatMilli(duration.toLong()),
-                    title = it,
-                    date = Instant.ofEpochMilli(File(context.dataDir.path, it).lastModified())
-                        .atZone(
-                            ZoneId.systemDefault()
-                        ).toLocalDateTime()
-                )
+                processAudioFileByPath(it)
             )
 
-
         }
+        fileObserver.startWatching()
     }
 
     val isRecording = recorder.isActiveFlow.receiveAsFlow()
 
-    fun recordAudio(isRecording: Boolean) {
-        Log.d("MainVM", "recording")
-        if (isRecording) {
-            recorder.stop()
-        } else {
-            File(context.dataDir, "${myAudioNotes.size + 1}.mp3").also {
-                recorder.start(it)
-            }
+    fun recordAudio() {
+        Log.d("MainVM", "start recording")
+        File(context.dataDir, "${myAudioNotes.size + 1}.mp3").also {
+            recorder.start(it)
         }
+    }
+
+    fun stopRecording(){
+        Log.d("MainVM", "stop recording")
+        recorder.stop()
     }
 
     fun playAudio(

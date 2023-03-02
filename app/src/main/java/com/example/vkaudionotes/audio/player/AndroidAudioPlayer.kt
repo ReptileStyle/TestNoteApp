@@ -54,7 +54,10 @@ class AndroidAudioPlayer(
     }
     fun getFileDuration(file: File):Int{
         MediaPlayer.create(context, file.toUri()).apply {
-            return this.duration
+            val duration = this.duration
+            this.stop()
+            this.release()
+            return duration
         }
     }
 

@@ -3,6 +3,7 @@ package com.example.vkaudionotes.audio.recorder
 import android.content.Context
 import android.media.MediaRecorder
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.MutableState
 import androidx.lifecycle.MutableLiveData
@@ -20,7 +21,8 @@ import java.io.FileOutputStream
 import kotlin.coroutines.CoroutineContext
 
 class AndroidAudioRecorder(
-private val context: Context
+private val context: Context,
+private val scope: CoroutineScope
 ): AudioRecorder {
     private var recorder: MediaRecorder? = null
 
@@ -47,8 +49,9 @@ private val context: Context
             start()
 
             recorder = this.also {
-                CoroutineScope(Dispatchers.Default).launch {
-                    isActiveFlow.send(recorder!=null)
+                scope.launch {
+                    Log.d("recorder","true sended")
+                    isActiveFlow.send(true)
                 }
             }
 
@@ -62,8 +65,9 @@ private val context: Context
         recorder?.stop()
         recorder?.reset()
         recorder = null.also {
-            CoroutineScope(Dispatchers.Default).launch {
-                isActiveFlow.send(recorder!=null)
+            scope.launch {
+                Log.d("recorder","false sended")
+                isActiveFlow.send(false)
             }
         }
     }

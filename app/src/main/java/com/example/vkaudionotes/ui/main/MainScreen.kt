@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.*
+import androidx.compose.material.SnackbarDefaults.backgroundColor
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.runtime.*
@@ -71,8 +72,12 @@ fun MainScreen(
            // val visualizerData = remember { mutableStateOf(VisualizerData()) }
             FloatingActionButton(
                 onClick = {
-                    if (hasRecordAudioPermission)
-                        viewModel.recordAudio(isRecording)
+                    if (hasRecordAudioPermission){
+                        if(isRecording)
+                            viewModel.stopRecording()
+                        else
+                            viewModel.recordAudio()
+                    }
                     else
                         launcher.launch(Manifest.permission.RECORD_AUDIO)
                 },
