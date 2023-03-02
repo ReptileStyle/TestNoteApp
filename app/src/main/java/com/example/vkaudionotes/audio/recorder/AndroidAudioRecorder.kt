@@ -3,6 +3,7 @@ package com.example.vkaudionotes.audio.recorder
 import android.content.Context
 import android.media.MediaRecorder
 import android.os.Build
+import android.os.CountDownTimer
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.MutableState
@@ -36,7 +37,14 @@ private val scope: CoroutineScope
 
     private val audioComputer = VisualizerComputer()
 
+    private val timer = object : CountDownTimer(60000*60-2000, 1000){//not allowed to record more, than 59:59
+        override fun onTick(millisUntilFinished: Long) {
 
+        }
+        override fun onFinish() {
+            stop()
+        }
+    }
 
 
     override fun start(outputFile: File) {
@@ -47,6 +55,7 @@ private val scope: CoroutineScope
             setOutputFile(FileOutputStream(outputFile).fd)
             prepare()
             start()
+            timer.start()
 
             recorder = this.also {
                 scope.launch {
@@ -62,6 +71,7 @@ private val scope: CoroutineScope
 
 
     override fun stop() {
+        timer.cancel()
         recorder?.stop()
         recorder?.reset()
         recorder = null.also {

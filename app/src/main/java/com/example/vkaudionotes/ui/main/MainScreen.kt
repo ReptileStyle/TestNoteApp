@@ -31,6 +31,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.room.util.convertByteToUUID
 import com.example.vkaudionotes.R
 import com.example.vkaudionotes.model.AudioNote
 import com.example.vkaudionotes.ui.components.util.formatMilli
@@ -71,12 +72,14 @@ fun MainScreen(
                     hasRecordAudioPermission = isGranted
                 }
             )
+
            // val visualizerData = remember { mutableStateOf(VisualizerData()) }
             FloatingActionButton(
                 onClick = {
                     if (hasRecordAudioPermission){
-                        if(isRecording)
+                        if(isRecording){
                             viewModel.stopRecording()
+                        }
                         else
                             viewModel.recordAudio()
                     }
@@ -119,7 +122,8 @@ fun MainScreen(
                         isPlaying = isPlaying,
                         isPaused = viewModel.isAudioPaused,
                         currentPosition = if(isPlaying) formatMilli(viewModel.currentPositionOfPlayingAudio.toLong()) else "",
-                        onPauseClick = {viewModel.pauseAudio()}
+                        onPauseClick = {viewModel.pauseAudio()},
+                        onEditTitleConfirmClick = {title -> viewModel.changeTitleOfNote(item,title)}
                     )
                 }
             }
@@ -134,15 +138,17 @@ fun AudioNoteContainer(
     onPlayClick: ()->Unit = {},
     onPauseClick: ()->Unit = {},
     onDeleteClick:()->Unit = {},
+    onEditTitleConfirmClick:(String)->Unit ={},
     isPlaying:Boolean = false,
     isPaused:Boolean = false,
     currentPosition:String = "2:18",
     audioNote: AudioNote
 ) {
     val dialogState = rememberMaterialDialogState()
-    DeleteAudioDialog(dialogState = dialogState, title = audioNote.title) {
-        onDeleteClick()
-    }
+//    DeleteAudioDialog(dialogState = dialogState, title = audioNote.title) {
+//        onDeleteClick()
+//    }
+    EditNoteDialog(dialogState = dialogState, note = audioNote, onDeleteClick = { onDeleteClick() }, onConfirmClick = onEditTitleConfirmClick)
     ConstraintLayout(modifier.combinedClickable(
         onClick = {},
         onLongClick = { dialogState.show() }
@@ -250,6 +256,40 @@ fun DeleteAudioDialog(
             text= "Удалить аудиозапись $title?",
             modifier = Modifier.padding(16.dp),
             textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+fun EditNoteDialog(
+    dialogState: MaterialDialogState,
+    note: AudioNote,
+    onDeleteClick: ()->Unit,
+    onConfirmClick: (String)->Unit
+){
+    var title by remember {
+        mutableStateOf(note.title)
+    }
+
+    val deleteDialogState = rememberMaterialDialogState()
+    DeleteAudioDialog(dialogState = deleteDialogState, title = note.title) {
+        onDeleteClick()
+    }
+    MaterialDialog(
+        dialogState = dialogState,
+        properties = DialogProperties (
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+        ),
+        buttons = {
+            positiveButton(text = "Ок", onClick = {onConfirmClick(title)})
+            negativeButton(text = "Удалить", onClick = {deleteDialogState.show()})
+        }
+    ) {
+        OutlinedTextField(
+            value = title,
+            onValueChange = {title=it},
+            modifier = Modifier.padding(16.dp),
         )
     }
 }

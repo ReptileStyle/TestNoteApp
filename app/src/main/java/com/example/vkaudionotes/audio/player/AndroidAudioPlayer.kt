@@ -84,6 +84,7 @@ class AndroidAudioPlayer(
                 delay(100)
             }
             emit(finalValue)
+            throw AudioFinishedException()
         }
     }
 }

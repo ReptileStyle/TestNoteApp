@@ -40,10 +40,6 @@ class MainViewModel @Inject constructor(
     val context: Context,
     private val repository: Repository
 ) : ViewModel() {
-
-    //check some info about audioSessionId
-
-
     private val recorder by lazy {
         AndroidAudioRecorder(context.applicationContext,viewModelScope)
     }
@@ -51,8 +47,6 @@ class MainViewModel @Inject constructor(
     private val player by lazy {
         AndroidAudioPlayer(context.applicationContext)
     }
-
-    val myAudioNotes = mutableStateListOf<AudioNote>()
 
     var currentPositionOfPlayingAudio by mutableStateOf(0)
     var playingAudioNote by mutableStateOf<AudioNote?>(null)
@@ -71,18 +65,39 @@ class MainViewModel @Inject constructor(
     fun recordAudio() {
         Log.d("MainVM", "start recording")
         newNote = AudioNote(
-            title = "${(context.dataDir.listFiles()?.size ?: 0) + 1}.mp3"
+            title = generateTitle()
         )
         File(context.dataDir, newNote!!.title).also {
             recorder.start(it)
         }
     }
 
+    private fun generateTitle():String{
+        var title = "Новая запись.mp3"
+        var i = 1
+        while (File(context.dataDir.path,title).exists()){
+            title = "Новая запись($i).mp3"
+            i++
+        }
+        return title
+    }
     fun stopRecording(){
         Log.d("MainVM", "stop recording")
-        recorder.stop()
-        insertNote(newNote!!)
-        newNote = null
+        try {
+            recorder.stop()
+            val duration = formatMilli(player.getFileDuration(File(context.dataDir.path, newNote!!.title)).toLong())
+            newNote = newNote!!.copy(length = duration)
+            insertNote(newNote!!)
+            newNote = null
+        }catch (e:Exception){
+            Log.d("MainVM","${e.message}")
+        }
+    }
+
+    fun changeTitleOfNote(note: AudioNote,title: String){
+        File(context.dataDir.path,note.title).renameTo(File(context.dataDir.path,title))
+        updateNote(note.copy(title = title))
+
     }
 
     fun playAudio(
@@ -151,6 +166,7 @@ class MainViewModel @Inject constructor(
 
     fun deleteNote(note:AudioNote) {
         viewModelScope.launch(Dispatchers.IO) {
+            File(context.dataDir.path,note.title).delete()
             repository.deleteNote(note)
         }
     }
