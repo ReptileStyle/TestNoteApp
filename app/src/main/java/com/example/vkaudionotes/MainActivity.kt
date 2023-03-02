@@ -18,9 +18,11 @@ import androidx.lifecycle.ViewModelProvider
 import com.example.vkaudionotes.ui.main.MainScreen
 import com.example.vkaudionotes.ui.main.MainViewModel
 import com.example.vkaudionotes.ui.theme.VKAudioNotesTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    private val mainViewModel:MainViewModel by viewModels { MainViewModelFactory(applicationContext) }
+   // private val mainViewModel:MainViewModel by viewModels { MainViewModelFactory(applicationContext) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,7 +34,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
                 ) {
-                    MainScreen(viewModel = mainViewModel)
+                    MainScreen()
                 }
             }
         }
@@ -44,8 +46,8 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-class MainViewModelFactory(private val context: Context):ViewModelProvider.NewInstanceFactory(){
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return MainViewModel(context) as T
-    }
-}
+//class MainViewModelFactory(private val context: Context):ViewModelProvider.NewInstanceFactory(){
+//    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+//        return MainViewModel(context) as T
+//    }
+//}

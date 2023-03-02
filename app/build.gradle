@@ -1,7 +1,11 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
+    id 'kotlin-kapt'
+    id 'kotlin-parcelize'
+    id 'dagger.hilt.android.plugin'
 }
+apply plugin: 'kotlin-android'
 
 android {
     namespace 'com.example.vkaudionotes'
@@ -65,4 +69,23 @@ dependencies {
     // Constraint Layout
     implementation "androidx.constraintlayout:constraintlayout-compose:1.0.1"
     implementation "io.github.vanpra.compose-material-dialogs:datetime:0.8.1-rc"
+
+    //    Hilt
+    implementation "com.google.dagger:hilt-android:2.44"
+    kapt "com.google.dagger:hilt-compiler:2.44"
+    implementation 'androidx.hilt:hilt-navigation-compose:1.0.0'
+
+    //    Datastore
+    implementation 'androidx.datastore:datastore-preferences:1.0.0'
+
+    /* LiveData */
+    def lifecycle_version = "2.5.1"
+    // ViewModel
+    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version"
+    // ViewModel utilities for Compose
+    implementation "androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycle_version"
+
+    //    Room persistence library
+    implementation "androidx.room:room-ktx:2.5.0"
+    kapt "androidx.room:room-compiler:2.5.0"
 }

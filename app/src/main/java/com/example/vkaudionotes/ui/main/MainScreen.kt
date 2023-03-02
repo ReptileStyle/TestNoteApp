@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.core.content.ContextCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.vkaudionotes.R
 import com.example.vkaudionotes.model.AudioNote
 import com.example.vkaudionotes.ui.components.util.formatMilli
@@ -45,7 +46,7 @@ val testList = listOf(AudioNote(title = "audio.mp3"), AudioNote(), AudioNote())
 @Preview
 @Composable
 fun MainScreen(
-    viewModel: MainViewModel = MainViewModel(LocalContext.current)
+    viewModel: MainViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     var hasRecordAudioPermission by remember {
@@ -59,6 +60,7 @@ fun MainScreen(
 
     val isRecording by viewModel.isRecording.collectAsState(initial = false)
 
+    val notes by viewModel.notes.collectAsState(initial = listOf())
 
     Scaffold(
         floatingActionButtonPosition = FabPosition.Center,
@@ -105,15 +107,15 @@ fun MainScreen(
                 fontWeight = FontWeight.Medium,
             )
             LazyColumn() {
-                items(viewModel.myAudioNotes) { item ->
-                    val isPlaying = item.title==viewModel.playingAudioName
+                items(notes) { item ->
+                    val isPlaying = item==viewModel.playingAudioNote
                     AudioNoteContainer(
                         audioNote = item,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(65.dp),
-                        onPlayClick = {viewModel.playAudio(item.title)},
-                        onDeleteClick = {viewModel.deleteAudio(item.title)},
+                        onPlayClick = {viewModel.playAudio(item)},
+                        onDeleteClick = {viewModel.deleteNote(item)},
                         isPlaying = isPlaying,
                         isPaused = viewModel.isAudioPaused,
                         currentPosition = if(isPlaying) formatMilli(viewModel.currentPositionOfPlayingAudio.toLong()) else "",
@@ -158,7 +160,7 @@ fun AudioNoteContainer(
             maxLines = 1
         )
         Text(
-            text = audioNote.date.format(DateTimeFormatter.ofPattern("dd.MM.yyyy в HH:mm")),
+            text = formatMilli(audioNote.date), //audioNote.date.format(DateTimeFormatter.ofPattern("dd.MM.yyyy в HH:mm")),
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.constrainAs(date) {
