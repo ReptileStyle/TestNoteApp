@@ -18,6 +18,8 @@ import androidx.lifecycle.ViewModelProvider
 import com.example.vkaudionotes.ui.main.MainScreen
 import com.example.vkaudionotes.ui.main.MainViewModel
 import com.example.vkaudionotes.ui.theme.VKAudioNotesTheme
+import com.vk.api.sdk.VK
+import com.vk.api.sdk.VKTokenExpiredHandler
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -27,6 +29,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d("main","onCreate")
+
         setContent {
             VKAudioNotesTheme {
                 // A surface container using the 'background' color from the theme

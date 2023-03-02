@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">VK Audio Notes</string>
+    <integer name="com_vk_sdk_AppId">51569879</integer>
 </resources>

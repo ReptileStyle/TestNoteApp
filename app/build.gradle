@@ -88,4 +88,11 @@ dependencies {
     //    Room persistence library
     implementation "androidx.room:room-ktx:2.5.0"
     kapt "androidx.room:room-compiler:2.5.0"
+
+    //vk sdk
+    implementation "com.vk:android-sdk-core:4.0.1"
+    implementation "com.vk:android-sdk-api:4.0.1"
+
+    //okHttp
+    implementation("com.squareup.okhttp3:okhttp:4.10.0")
 }

@@ -23,6 +23,16 @@ import com.example.vkaudionotes.model.AudioFinishedException
 import com.example.vkaudionotes.model.AudioNote
 import com.example.vkaudionotes.repository.Repository
 import com.example.vkaudionotes.ui.components.util.formatMilli
+import com.example.vkaudionotes.util.FileUploader
+import com.vk.api.sdk.VK
+import com.vk.api.sdk.VKApiCallback
+import com.vk.sdk.api.account.AccountService
+import com.vk.sdk.api.base.dto.BaseUploadServerDto
+import com.vk.sdk.api.docs.DocsService
+import com.vk.sdk.api.docs.dto.DocsSaveResponseDto
+import com.vk.sdk.api.friends.FriendsService
+import com.vk.sdk.api.friends.dto.FriendsGetFieldsResponseDto
+import com.vk.sdk.api.users.dto.UsersFieldsDto
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
@@ -57,6 +67,7 @@ class MainViewModel @Inject constructor(
     var playerJob: Job? = null
 
     init {
+      //  VK.logout()
         getNotes()
     }
 
@@ -134,6 +145,64 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun uploadFileToVK(title: String){
+        VK.execute(
+            DocsService().docsGetUploadServer(),object :VKApiCallback<BaseUploadServerDto>{
+                override fun fail(error: Exception) {
+                    Log.d("VK","failed to get upload url ${error.message}")
+                }
+
+                override fun success(result: BaseUploadServerDto) {
+                    Log.d("VK","got upload url")
+                    FileUploader().uploadFile(File(context.dataDir.path,title),url = result.uploadUrl)
+                }
+            }
+        )
+        VK.execute(FriendsService().friendsGet(), object: VKApiCallback<FriendsGetFieldsResponseDto> {
+            override fun success(result: FriendsGetFieldsResponseDto) {
+                // you stuff is here
+                Log.e("VK", result.count.toString())
+            }
+            override fun fail(error: Exception) {
+                Log.e("VK", error.message.toString())
+            }
+        })
+
+        requestFriends()
+
+
+//        VK.execute(
+//            DocsService().docsSave(
+//            note.title,
+//        ), object:
+//                VKApiCallback<DocsSaveResponseDto> {
+//            override fun fail(error: Exception) {
+//                Log.e("VK", error.toString())
+//                Toast.makeText(context,"Failed to upload: ${error.message}",Toast.LENGTH_LONG).show()
+//            }
+//            override fun success(result: DocsSaveResponseDto) {
+//                Log.d("VK","Uploaded")
+//                Toast.makeText(context,"File uploaded",Toast.LENGTH_SHORT).show()
+//            }
+//        })
+    }
+
+    fun uploadFileWithUrl(url:String,title: String){
+
+    }
+
+    private fun requestFriends() {
+        val fields = listOf(UsersFieldsDto.PHOTO_200)
+        VK.execute(FriendsService().friendsGet(fields = fields), object: VKApiCallback<FriendsGetFieldsResponseDto> {
+            override fun success(result: FriendsGetFieldsResponseDto) {
+                val friends = result.items
+                Log.d("VK","friend success")
+            }
+            override fun fail(error: Exception) {
+                Log.e("VK", error.toString())
+            }
+        })
+    }
 
     fun pauseAudio() {
         isAudioPaused = true

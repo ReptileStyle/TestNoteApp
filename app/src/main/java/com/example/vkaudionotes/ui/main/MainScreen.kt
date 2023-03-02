@@ -1,7 +1,12 @@
 package com.example.vkaudionotes.ui.main
 
 import android.Manifest
+import android.app.Activity
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.util.Log
+import android.widget.Toast
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -38,6 +43,15 @@ import com.example.vkaudionotes.ui.components.util.formatMilli
 import com.vanpra.composematerialdialogs.MaterialDialog
 import com.vanpra.composematerialdialogs.MaterialDialogState
 import com.vanpra.composematerialdialogs.rememberMaterialDialogState
+import com.vk.api.sdk.VK
+import com.vk.api.sdk.VKApiCallback
+import com.vk.api.sdk.auth.VKAccessToken
+import com.vk.api.sdk.auth.VKAuthCallback
+import com.vk.api.sdk.auth.VKAuthenticationResult
+import com.vk.api.sdk.auth.VKScope
+import com.vk.api.sdk.exceptions.VKAuthException
+import com.vk.sdk.api.docs.DocsService
+
 import java.time.format.DateTimeFormatter
 
 
@@ -63,6 +77,8 @@ fun MainScreen(
 
     val notes by viewModel.notes.collectAsState(initial = listOf())
 
+
+
     Scaffold(
         floatingActionButtonPosition = FabPosition.Center,
         floatingActionButton = {
@@ -72,18 +88,15 @@ fun MainScreen(
                     hasRecordAudioPermission = isGranted
                 }
             )
-
-           // val visualizerData = remember { mutableStateOf(VisualizerData()) }
+            // val visualizerData = remember { mutableStateOf(VisualizerData()) }
             FloatingActionButton(
                 onClick = {
-                    if (hasRecordAudioPermission){
-                        if(isRecording){
+                    if (hasRecordAudioPermission) {
+                        if (isRecording) {
                             viewModel.stopRecording()
-                        }
-                        else
+                        } else
                             viewModel.recordAudio()
-                    }
-                    else
+                    } else
                         launcher.launch(Manifest.permission.RECORD_AUDIO)
                 },
                 backgroundColor = Color(0xff2189ec),
@@ -91,7 +104,7 @@ fun MainScreen(
             ) {
                 Icon(
                     modifier = Modifier.size(35.dp),
-                    imageVector = ImageVector.vectorResource(id = if(isRecording) R.drawable.mic_off else R.drawable.mic),
+                    imageVector = ImageVector.vectorResource(id = if (isRecording) R.drawable.mic_off else R.drawable.mic),
                     contentDescription = "Record"
                 )
             }
@@ -111,19 +124,25 @@ fun MainScreen(
             )
             LazyColumn() {
                 items(notes) { item ->
-                    val isPlaying = item==viewModel.playingAudioNote
+                    val isPlaying = item == viewModel.playingAudioNote
                     AudioNoteContainer(
                         audioNote = item,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(65.dp),
-                        onPlayClick = {viewModel.playAudio(item)},
-                        onDeleteClick = {viewModel.deleteNote(item)},
+                        onPlayClick = { viewModel.playAudio(item) },
+                        onDeleteClick = { viewModel.deleteNote(item) },
                         isPlaying = isPlaying,
                         isPaused = viewModel.isAudioPaused,
-                        currentPosition = if(isPlaying) formatMilli(viewModel.currentPositionOfPlayingAudio.toLong()) else "",
-                        onPauseClick = {viewModel.pauseAudio()},
-                        onEditTitleConfirmClick = {title -> viewModel.changeTitleOfNote(item,title)}
+                        currentPosition = if (isPlaying) formatMilli(viewModel.currentPositionOfPlayingAudio.toLong()) else "",
+                        onPauseClick = { viewModel.pauseAudio() },
+                        onEditTitleConfirmClick = { title ->
+                            viewModel.changeTitleOfNote(
+                                item,
+                                title
+                            )
+                        },
+                        onLoadFileToVK = {viewModel.uploadFileToVK(it)}
                     )
                 }
             }
@@ -135,20 +154,27 @@ fun MainScreen(
 @Composable
 fun AudioNoteContainer(
     modifier: Modifier = Modifier,
-    onPlayClick: ()->Unit = {},
-    onPauseClick: ()->Unit = {},
-    onDeleteClick:()->Unit = {},
-    onEditTitleConfirmClick:(String)->Unit ={},
-    isPlaying:Boolean = false,
-    isPaused:Boolean = false,
-    currentPosition:String = "2:18",
+    onPlayClick: () -> Unit = {},
+    onPauseClick: () -> Unit = {},
+    onDeleteClick: () -> Unit = {},
+    onEditTitleConfirmClick: (String) -> Unit = {},
+    onLoadFileToVK: (String) -> Unit,
+    isPlaying: Boolean = false,
+    isPaused: Boolean = false,
+    currentPosition: String = "2:18",
     audioNote: AudioNote
 ) {
     val dialogState = rememberMaterialDialogState()
 //    DeleteAudioDialog(dialogState = dialogState, title = audioNote.title) {
 //        onDeleteClick()
 //    }
-    EditNoteDialog(dialogState = dialogState, note = audioNote, onDeleteClick = { onDeleteClick() }, onConfirmClick = onEditTitleConfirmClick)
+    ChooseActionDialog(
+        dialogState = dialogState,
+        note = audioNote,
+        onDeleteClick = { onDeleteClick() },
+        onConfirmClick = onEditTitleConfirmClick,
+        onLoadFileToVK = onLoadFileToVK
+    )
     ConstraintLayout(modifier.combinedClickable(
         onClick = {},
         onLongClick = { dialogState.show() }
@@ -178,10 +204,10 @@ fun AudioNoteContainer(
         )
         Text(
             text = buildAnnotatedString {
-                if(isPlaying)
+                if (isPlaying)
                     append("$currentPosition/")
                 append("${audioNote.length}")
-            } ,//audioNote.date.format(DateTimeFormatter.ofPattern("dd.MM.yyyy в HH:mm")),
+            },//audioNote.date.format(DateTimeFormatter.ofPattern("dd.MM.yyyy в HH:mm")),
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.constrainAs(time) {
@@ -200,10 +226,10 @@ fun AudioNoteContainer(
                     bottom.linkTo(parent.bottom)
                     end.linkTo(parent.end, 8.dp)
                 },
-            color = if(isPlaying && !isPaused) Color(0xff6d7986) else Color(0xff2189ec),
+            color = if (isPlaying && !isPaused) Color(0xff6d7986) else Color(0xff2189ec),
             shape = CircleShape
         ) {
-            if(isPlaying && !isPaused){
+            if (isPlaying && !isPaused) {
                 IconButton(
                     onClick = { onPauseClick() },
                     modifier = Modifier
@@ -215,8 +241,7 @@ fun AudioNoteContainer(
                         modifier = Modifier.size(28.dp),
                     )
                 }
-            }
-            else {
+            } else {
                 IconButton(
                     onClick = { onPlayClick() },
                     modifier = Modifier
@@ -234,16 +259,15 @@ fun AudioNoteContainer(
 }
 
 
-
 @Composable
 fun DeleteAudioDialog(
     dialogState: MaterialDialogState,
-    title:String,
-    onConfirmClick: ()->Unit
-){
+    title: String,
+    onConfirmClick: () -> Unit
+) {
     MaterialDialog(
         dialogState = dialogState,
-        properties = DialogProperties (
+        properties = DialogProperties(
             dismissOnBackPress = true,
             dismissOnClickOutside = true,
         ),
@@ -253,7 +277,7 @@ fun DeleteAudioDialog(
         }
     ) {
         Text(
-            text= "Удалить аудиозапись $title?",
+            text = "Удалить аудиозапись $title?",
             modifier = Modifier.padding(16.dp),
             textAlign = TextAlign.Center
         )
@@ -261,12 +285,79 @@ fun DeleteAudioDialog(
 }
 
 @Composable
+fun ChooseActionDialog(
+    dialogState: MaterialDialogState,
+    note: AudioNote,
+    onDeleteClick: () -> Unit,
+    onConfirmClick: (String) -> Unit,
+    onLoadFileToVK: (String)->Unit
+){
+    val editDialogState = rememberMaterialDialogState()
+    val context = LocalContext.current
+    val VKAuthLauncher = rememberLauncherForActivityResult(contract = VK.getVKAuthActivityResultContract()){result->
+        when (result) {
+            is VKAuthenticationResult.Success -> {
+                Toast.makeText(context,"Successfully logged in",Toast.LENGTH_LONG).show()
+                Log.d("VKAuth","${result.token}")
+            }
+            is VKAuthenticationResult.Failed -> {
+                Toast.makeText(context,"Failed to login: ${result.exception.message}",Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    EditNoteDialog(
+        dialogState = editDialogState,
+        note = note,
+        onDeleteClick = onDeleteClick,
+        onConfirmClick = onConfirmClick)
+
+    MaterialDialog(
+        dialogState = dialogState,
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+        ),
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(8.dp),) {
+            TextButton(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                editDialogState.show()
+                dialogState.hide()
+            }) {
+                Text(text = "Редактировать")
+            }
+            TextButton(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                if(!VK.isLoggedIn()) {
+                    VKAuthLauncher.launch(arrayListOf(VKScope.WALL, VKScope.PHOTOS, VKScope.DOCS))
+                }else{
+                    onLoadFileToVK(note.title)
+                }
+                dialogState.hide()
+            }) {
+                Text(text = "Загрузить в документы вк")
+            }
+            TextButton(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    dialogState.hide()
+                }) {
+                Text(text = "Назад")
+            }
+        }
+    }
+}
+
+@Composable
 fun EditNoteDialog(
     dialogState: MaterialDialogState,
     note: AudioNote,
-    onDeleteClick: ()->Unit,
-    onConfirmClick: (String)->Unit
-){
+    onDeleteClick: () -> Unit,
+    onConfirmClick: (String) -> Unit
+) {
     var title by remember {
         mutableStateOf(note.title)
     }
@@ -277,18 +368,18 @@ fun EditNoteDialog(
     }
     MaterialDialog(
         dialogState = dialogState,
-        properties = DialogProperties (
+        properties = DialogProperties(
             dismissOnBackPress = true,
             dismissOnClickOutside = true,
         ),
         buttons = {
-            positiveButton(text = "Ок", onClick = {onConfirmClick(title)})
-            negativeButton(text = "Удалить", onClick = {deleteDialogState.show()})
+            positiveButton(text = "Ок", onClick = { onConfirmClick(title) })
+            negativeButton(text = "Удалить", onClick = { deleteDialogState.show() })
         }
     ) {
         OutlinedTextField(
             value = title,
-            onValueChange = {title=it},
+            onValueChange = { title = it },
             modifier = Modifier.padding(16.dp),
         )
     }
