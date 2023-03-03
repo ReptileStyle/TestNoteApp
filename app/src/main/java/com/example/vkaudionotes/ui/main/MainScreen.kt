@@ -298,7 +298,8 @@ fun ChooseActionDialog(
         when (result) {
             is VKAuthenticationResult.Success -> {
                 Toast.makeText(context,"Successfully logged in",Toast.LENGTH_LONG).show()
-                Log.d("VKAuth","${result.token}")
+                VK.saveAccessToken(accessToken = result.token.accessToken, secret = result.token.secret, userId = result.token.userId, context = context)
+                Log.d("VKAuth","${result.token.accessToken}")
             }
             is VKAuthenticationResult.Failed -> {
                 Toast.makeText(context,"Failed to login: ${result.exception.message}",Toast.LENGTH_LONG).show()
