@@ -132,6 +132,7 @@ fun MainScreen(
                             .height(65.dp),
                         onPlayClick = { viewModel.playAudio(item) },
                         onDeleteClick = { viewModel.deleteNote(item) },
+                        onDecodeClick = { viewModel.decodeAudioIntoText(item.name) },
                         isPlaying = isPlaying,
                         isPaused = viewModel.isAudioPaused,
                         currentPosition = if (isPlaying) formatMilli(viewModel.currentPositionOfPlayingAudio.toLong()) else "",
@@ -142,7 +143,7 @@ fun MainScreen(
                                 title
                             )
                         },
-                        onLoadFileToVK = {viewModel.uploadFileToVK(it)}
+                        onLoadFileToVK = { viewModel.uploadFileToVK2(it) }
                     )
                 }
             }
@@ -157,6 +158,7 @@ fun AudioNoteContainer(
     onPlayClick: () -> Unit = {},
     onPauseClick: () -> Unit = {},
     onDeleteClick: () -> Unit = {},
+    onDecodeClick: () -> Unit = {},
     onEditTitleConfirmClick: (String) -> Unit = {},
     onLoadFileToVK: (String) -> Unit,
     isPlaying: Boolean = false,
@@ -173,7 +175,8 @@ fun AudioNoteContainer(
         note = audioNote,
         onDeleteClick = { onDeleteClick() },
         onConfirmClick = onEditTitleConfirmClick,
-        onLoadFileToVK = onLoadFileToVK
+        onLoadFileToVK = onLoadFileToVK,
+        onDecodeClick = onDecodeClick
     )
     ConstraintLayout(modifier.combinedClickable(
         onClick = {},
@@ -265,6 +268,7 @@ fun DeleteAudioDialog(
     title: String,
     onConfirmClick: () -> Unit
 ) {
+
     MaterialDialog(
         dialogState = dialogState,
         properties = DialogProperties(
@@ -290,28 +294,40 @@ fun ChooseActionDialog(
     note: AudioNote,
     onDeleteClick: () -> Unit,
     onConfirmClick: (String) -> Unit,
-    onLoadFileToVK: (String)->Unit
-){
+    onDecodeClick: () -> Unit,
+    onLoadFileToVK: (String) -> Unit
+) {
     val editDialogState = rememberMaterialDialogState()
     val context = LocalContext.current
-    val VKAuthLauncher = rememberLauncherForActivityResult(contract = VK.getVKAuthActivityResultContract()){result->
-        when (result) {
-            is VKAuthenticationResult.Success -> {
-                Toast.makeText(context,"Successfully logged in",Toast.LENGTH_LONG).show()
-                VK.saveAccessToken(accessToken = result.token.accessToken, secret = result.token.secret, userId = result.token.userId, context = context)
-                Log.d("VKAuth","${result.token.accessToken}")
-            }
-            is VKAuthenticationResult.Failed -> {
-                Toast.makeText(context,"Failed to login: ${result.exception.message}",Toast.LENGTH_LONG).show()
+    val VKAuthLauncher =
+        rememberLauncherForActivityResult(contract = VK.getVKAuthActivityResultContract()) { result ->
+            when (result) {
+                is VKAuthenticationResult.Success -> {
+                    Toast.makeText(context, "Successfully logged in", Toast.LENGTH_LONG).show()
+                    VK.saveAccessToken(
+                        accessToken = result.token.accessToken,
+                        secret = result.token.secret,
+                        userId = result.token.userId,
+                        context = context
+                    )
+                    //               VK.saveAccessToken(accessToken = result.token.accessToken, secret = result.token.secret, userId = result.token.userId, expiresInSec = result.token.expiresInSec, createdMs = result.token.createdMs)
+                    Log.d("VKAuth", "${result.token.accessToken}")
+                }
+                is VKAuthenticationResult.Failed -> {
+                    Toast.makeText(
+                        context,
+                        "Failed to login: ${result.exception.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
             }
         }
-    }
-
     EditNoteDialog(
         dialogState = editDialogState,
         note = note,
         onDeleteClick = onDeleteClick,
-        onConfirmClick = onConfirmClick)
+        onConfirmClick = onConfirmClick
+    )
 
     MaterialDialog(
         dialogState = dialogState,
@@ -320,26 +336,44 @@ fun ChooseActionDialog(
             dismissOnClickOutside = true,
         ),
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(8.dp),) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+        ) {
             TextButton(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = {
-                editDialogState.show()
-                dialogState.hide()
-            }) {
+                    editDialogState.show()
+                    dialogState.hide()
+                }) {
                 Text(text = "Редактировать")
             }
             TextButton(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = {
-                if(!VK.isLoggedIn()) {
-                    VKAuthLauncher.launch(arrayListOf(VKScope.WALL, VKScope.PHOTOS, VKScope.DOCS))
-                }else{
-                    onLoadFileToVK(note.title)
-                }
-                dialogState.hide()
-            }) {
+                    if (!VK.isLoggedIn()) {
+                        VKAuthLauncher.launch(
+                            arrayListOf(
+                                VKScope.WALL,
+                                VKScope.DOCS,
+                                VKScope.AUDIO
+                            )
+                        )
+                    } else {
+                        onLoadFileToVK(note.name)
+                    }
+                    dialogState.hide()
+                }) {
                 Text(text = "Загрузить в документы вк")
+            }
+            TextButton(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    onDecodeClick()
+                    dialogState.hide()
+                }) {
+                Text(text = "Расшифровать")
             }
             TextButton(
                 modifier = Modifier.fillMaxWidth(),
@@ -362,7 +396,9 @@ fun EditNoteDialog(
     var title by remember {
         mutableStateOf(note.title)
     }
-
+    var isError by remember {
+        mutableStateOf(false)
+    }
     val deleteDialogState = rememberMaterialDialogState()
     DeleteAudioDialog(dialogState = deleteDialogState, title = note.title) {
         onDeleteClick()
@@ -374,14 +410,29 @@ fun EditNoteDialog(
             dismissOnClickOutside = true,
         ),
         buttons = {
-            positiveButton(text = "Ок", onClick = { onConfirmClick(title) })
+            positiveButton(text = "Ок", onClick = {
+                try {
+                    onConfirmClick(title) 
+                } catch (e: Exception) {
+                    isError = true
+                }
+            }, disableDismiss = true)
             negativeButton(text = "Удалить", onClick = { deleteDialogState.show() })
         }
     ) {
         OutlinedTextField(
             value = title,
-            onValueChange = { title = it },
+            onValueChange = { value ->
+                title = value
+                isError = false
+            },
             modifier = Modifier.padding(16.dp),
+            isError = isError,
+            label = {
+                if (isError) {
+                    Text(text = "Имя файла занято")
+                }
+            }
         )
     }
 }

@@ -3,6 +3,7 @@ plugins {
     id 'org.jetbrains.kotlin.android'
     id 'kotlin-kapt'
     id 'kotlin-parcelize'
+    id 'org.jetbrains.kotlin.plugin.serialization' version '1.8.0'
     id 'dagger.hilt.android.plugin'
 }
 apply plugin: 'kotlin-android'
@@ -41,7 +42,7 @@ android {
         compose true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion '1.2.0'
+        kotlinCompilerExtensionVersion '1.4.0'
     }
     packagingOptions {
         resources {
@@ -85,6 +86,8 @@ dependencies {
     // ViewModel utilities for Compose
     implementation "androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycle_version"
 
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.6.4"
+
     //    Room persistence library
     implementation "androidx.room:room-ktx:2.5.0"
     kapt "androidx.room:room-compiler:2.5.0"
@@ -103,4 +106,6 @@ dependencies {
     implementation 'com.squareup.retrofit2:converter-moshi:2.9.0'
 
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.6.4"
+
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0")
 }

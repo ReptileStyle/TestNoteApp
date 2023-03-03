@@ -14,5 +14,8 @@ data class AudioNote(
     var id: Int = 0,
     val length:String = "0:00",
     val date: String = "неизвестно",
-    val title: String = "Default title",
-) : Parcelable
+    val title: String = "Default title"
+) : Parcelable {
+    val name
+    get()="$title.3gpp"
+}
