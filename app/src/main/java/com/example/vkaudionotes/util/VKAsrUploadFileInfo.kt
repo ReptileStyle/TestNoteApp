@@ -1,5 +1,6 @@
 package com.example.vkaudionotes.util
 
+@kotlinx.serialization.Serializable
 data class VKAsrUploadFileInfo(
     val app_id: Int,
     val hash: String,
@@ -10,7 +11,7 @@ data class VKAsrUploadFileInfo(
     val sha: String,
     val user_id: Int
 )
-
+@kotlinx.serialization.Serializable
 data class Meta(
     val duration: String,
     val size: String,

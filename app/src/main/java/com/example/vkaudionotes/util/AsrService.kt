@@ -11,6 +11,8 @@ import com.vk.api.sdk.internal.ApiCommand
 import com.vk.api.sdk.internal.HttpMultipartEntry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -133,6 +135,8 @@ class AsrService() {
                 .url(uploadUrl)
                 .build()
         )
-        return@withContext call.execute().body?.string()
+        val response = call.execute().body
+        Json.decodeFromString<VKAsrUploadFileInfo>(response?.string()!!)
+        return@withContext response.string()
     }
 }
