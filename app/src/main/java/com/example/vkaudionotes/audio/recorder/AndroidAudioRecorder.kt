@@ -13,6 +13,7 @@ import com.example.vkaudionotes.audio.visualizer.VisualizerData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
@@ -22,13 +23,13 @@ import java.io.FileOutputStream
 import kotlin.coroutines.CoroutineContext
 
 class AndroidAudioRecorder(
-private val context: Context,
-private val scope: CoroutineScope
-): AudioRecorder {
+    private val context: Context,
+    private val scope: CoroutineScope
+) : AudioRecorder {
     private var recorder: MediaRecorder? = null
 
     private fun createRecorder(): MediaRecorder {
-        return if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             MediaRecorder(context)
         } else MediaRecorder()
     }
@@ -37,10 +38,15 @@ private val scope: CoroutineScope
 
     private val audioComputer = VisualizerComputer()
 
-    private val timer = object : CountDownTimer(60000*60-2000, 1000){//not allowed to record more, than 59:59
+    val amplitudeChannel = Channel<Int>()
+
+
+    private val timer = object : CountDownTimer(60000 * 60 - 2000, 1000) {
+        //not allowed to record more, than 59:59
         override fun onTick(millisUntilFinished: Long) {
 
         }
+
         override fun onFinish() {
             stop()
         }
@@ -59,24 +65,39 @@ private val scope: CoroutineScope
 
             recorder = this.also {
                 scope.launch {
-                    Log.d("recorder","true sended")
+                    Log.d("recorder", "true sended")
                     isActiveFlow.send(true)
                 }
             }
-
+            scope.launch {
+                while (true) {
+                    delay(350)
+                    try {
+                        val amplitude = recorder?.maxAmplitude
+                        if (amplitude != null)
+                            amplitudeChannel.send(amplitude)
+                        else
+                            break
+                    }catch (e:Exception){
+                        //getMaxAmplitude called in an invalid state
+                    }
+                }
+            }
         }
     }
 
 
-
-
     override fun stop() {
         timer.cancel()
-        recorder?.stop()
-        recorder?.reset()
+        try {
+            recorder?.stop()
+            recorder?.reset()
+        }catch (e:Exception){
+            //stop failed, because never started?
+        }
         recorder = null.also {
             scope.launch {
-                Log.d("recorder","false sended")
+                Log.d("recorder", "false sended")
                 isActiveFlow.send(false)
             }
         }

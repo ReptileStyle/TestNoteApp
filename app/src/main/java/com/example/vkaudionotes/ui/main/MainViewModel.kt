@@ -3,9 +3,10 @@ package com.example.vkaudionotes.ui.main
 import android.content.Context
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.*
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.*
 import com.example.vkaudionotes.audio.player.AndroidAudioPlayer
 import com.example.vkaudionotes.audio.recorder.AndroidAudioRecorder
 import com.example.vkaudionotes.model.AudioFinishedException
@@ -37,7 +38,7 @@ class MainViewModel @Inject constructor(
     @ApplicationContext
     val context: Context,
     private val repository: Repository
-) : ViewModel() {
+) : ViewModel(), LifecycleObserver {
     private val recorder by lazy {
         AndroidAudioRecorder(context.applicationContext, viewModelScope)
     }
@@ -57,8 +58,10 @@ class MainViewModel @Inject constructor(
     }
 
     val isRecording = recorder.isActiveFlow.receiveAsFlow()
+
     var newNote: AudioNote? = null
 
+    val amplitudeFlow = recorder.amplitudeChannel.receiveAsFlow()
     fun recordAudio() {
         newNote = AudioNote(
             title = generateTitle(context.dataDir.path).substringBefore('.')
@@ -79,8 +82,6 @@ class MainViewModel @Inject constructor(
         try {
             recorder.stop()
             Log.d("asd",newNote!!.name)
-
-
             newNote = newNote!!.copy(
                 length = player.getFileDuration(File(context.dataDir.path, newNote!!.name)).toLong(),
                 date = LocalDateTime.now().format(
@@ -88,6 +89,7 @@ class MainViewModel @Inject constructor(
                 ),
             )
             insertNote(newNote!!)
+            Log.d("asd","note inserted")
             newNote = null
         } catch (e: Exception) {
             Log.e("MainVM", "${e.message}")
@@ -226,9 +228,15 @@ class MainViewModel @Inject constructor(
 
     override fun onCleared() {
         Log.d("MainVM", "onCleared")
-        recorder.stop()
+//        try {
+//            File(context.dataDir.path,newNote!!.name).delete()
+//        }catch (e:Exception){
+//            Log.d("MainVM", "no file to delete")
+//        }
         super.onCleared()
     }
+
+
 
     lateinit var notes: Flow<List<AudioNote>>
 
@@ -256,4 +264,5 @@ class MainViewModel @Inject constructor(
     }
 
     fun getNote(noteId: Int): Flow<AudioNote> = repository.getNote(noteId)
+
 }
