@@ -84,12 +84,11 @@ class MainViewModel @Inject constructor(
             Log.d("asd",newNote!!.name)
             newNote = newNote!!.copy(
                 length = player.getFileDuration(File(context.dataDir.path, newNote!!.name)).toLong(),
-                date = LocalDateTime.now().format(
-                    DateTimeFormatter.ofPattern("dd.MM.yyyy в HH:mm")
-                ),
+                date = System.currentTimeMillis()
             )
             insertNote(newNote!!)
             Log.d("asd","note inserted")
+            Toast.makeText(context,"Stopped recording",Toast.LENGTH_SHORT).show()
             newNote = null
         } catch (e: Exception) {
             Log.e("MainVM", "${e.message}")
@@ -134,52 +133,6 @@ class MainViewModel @Inject constructor(
         }
     }
 
-//    fun uploadFileToVK(name: String) {//not needed function
-//        VK.execute(DocsService().docsGetMessagesUploadServer(type = DocsGetMessagesUploadServerType.AUDIO_MESSAGE), object : VKApiCallback<BaseUploadServer> {
-//            override fun fail(error: Exception) {
-//                Log.d("VK", "failed to get upload url ${error.message}")
-//                Log.d("VK", "failed to get upload url ${error.toString()}")
-//                Log.d("VK", "failed to get upload url ${error.localizedMessage}")
-//            }
-//
-//            override fun success(result: BaseUploadServer) {
-//                Log.d("VK", "got upload url")
-//              //  FileUploader().uploadFile(File(context.dataDir.path, title), url = result.uploadUrl)
-//                VK.execute(
-//                    VKFileUploadCommand(
-//                        File(context.dataDir.path, name),
-//                        url = result.uploadUrl
-//                    ), object : VKApiCallback<String> {
-//                        override fun fail(error: Exception) {
-//                            Log.d("VKUpload","file upload failed")
-//                        }
-//                        override fun success(result: String) {
-//                            Log.d("VKUpload","file upload success, $result")
-//                            VK.execute(DocsService().docsSave(file = result, title = name),object:VKApiCallback<DocsSaveResponse>{
-//                                override fun fail(error: Exception) {
-//                                    Log.d("VKUpload","failed to save file")
-//                                }
-//                                override fun success(result: DocsSaveResponse) {
-//                                    Log.d("VKUpload","successfully saved file ${result.audioMessage?.linkOgg}")
-//                                    VK.execute(FaveService().faveAddLink(
-//                                        link = "${result.audioMessage?.linkOgg}"
-//                                    ),object : VKApiCallback<BaseOkResponse>{
-//                                        override fun fail(error: Exception) {
-//                                            Log.d("VKUpload","message error: ${error.message}")
-//                                        }
-//
-//                                        override fun success(result: BaseOkResponse) {
-//                                            Log.d("VKUpload","link added to fave")
-//                                        }
-//
-//                                    })
-//                                }
-//                            })
-//                        }
-//                    })
-//            }
-//        })
-//    }
     fun uploadFileToVK2(name: String) {
         viewModelScope.launch {
             val result = UploadUtility().saveToDocs(File(context.dataDir.path, name))

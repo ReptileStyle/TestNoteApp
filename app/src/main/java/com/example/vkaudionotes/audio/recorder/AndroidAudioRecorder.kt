@@ -8,8 +8,7 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.MutableState
 import androidx.lifecycle.MutableLiveData
-import com.example.vkaudionotes.audio.visualizer.VisualizerComputer
-import com.example.vkaudionotes.audio.visualizer.VisualizerData
+
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -36,12 +35,11 @@ class AndroidAudioRecorder(
 
     override val isActiveFlow = Channel<Boolean>()
 
-    private val audioComputer = VisualizerComputer()
 
-    val amplitudeChannel = Channel<Int>()
+    override val amplitudeChannel = Channel<Int>()
 
 
-    private val timer = object : CountDownTimer(60000 * 60 - 2000, 1000) {
+    private val timer = object : CountDownTimer(60000 * 60 - 1000, 1000) {
         //not allowed to record more, than 59:59
         override fun onTick(millisUntilFinished: Long) {
 

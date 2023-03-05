@@ -1,16 +1,11 @@
 package com.example.vkaudionotes.util
 
-import android.app.Activity
-import android.app.ProgressDialog
-import android.net.Uri
 import android.util.Log
-import android.webkit.MimeTypeMap
 
 import com.vk.api.sdk.VK
 import com.vk.api.sdk.VKApiCallback
 import com.vk.api.sdk.internal.ApiCommand
 import com.vk.sdk.api.docs.DocsService
-import com.vk.sdk.api.wall.dto.WallPostSourceType
 import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
 import kotlin.coroutines.resume
@@ -18,12 +13,8 @@ import kotlin.coroutines.resumeWithException
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import okhttp3.*
-import okhttp3.HttpUrl.Companion.toHttpUrl
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.asRequestBody
-import retrofit2.http.Url
 import java.io.File
-import java.net.URL
 
 class UploadUtility() {
 
@@ -35,7 +26,6 @@ class UploadUtility() {
                 val uploadUrl = VK.enqueue(DocsService().docsGetUploadServer()).uploadUrl
                 val body = uploadFile(file, uploadUrl)!!
                 val vkFile = Json.decodeFromString<VkFile>(body).file
-
                 VK.enqueue(DocsService().docsSave(vkFile, file.name))
                 cont.resumeWith(Result.success(true))
             }.onFailure {

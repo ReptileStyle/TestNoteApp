@@ -5,8 +5,6 @@ import android.content.res.AssetManager
 import android.media.MediaPlayer
 import androidx.compose.runtime.MutableState
 import androidx.core.net.toUri
-import com.example.vkaudionotes.audio.visualizer.VisualizerComputer
-import com.example.vkaudionotes.audio.visualizer.VisualizerData
 import com.example.vkaudionotes.model.AudioFinishedException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -19,7 +17,6 @@ class AndroidAudioPlayer(
 
     private var player: MediaPlayer? = null
 
-    private val audioComputer = VisualizerComputer()
 
     override fun playFile(file: File): Flow<Int> {
         stop()
@@ -39,20 +36,8 @@ class AndroidAudioPlayer(
             throw AudioFinishedException()
         }
     }
-    fun play(assets: AssetManager, fileName: String, visualizerData: MutableState<VisualizerData>):Int {
-        val afd = assets.openFd(fileName)
-        player = MediaPlayer().apply {
-            setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
-            setVolume(0.01f, 0.01f)
-            prepare()
-            start()
-        }
-        audioComputer.start(audioSessionId = player!!.audioSessionId, onData = { data ->
-            visualizerData.value = data
-        })
-        return player?.currentPosition ?: 0
-    }
-    fun getFileDuration(file: File):Int{
+
+    override fun getFileDuration(file: File):Int{
         MediaPlayer.create(context, file.toUri()).apply {
             val duration = this.duration
             this.stop()

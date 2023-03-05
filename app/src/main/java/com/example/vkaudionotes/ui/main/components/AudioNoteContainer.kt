@@ -25,7 +25,12 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import com.example.vkaudionotes.R
 import com.example.vkaudionotes.model.AudioNote
 import com.example.vkaudionotes.ui.components.util.formatMilli
+import com.example.vkaudionotes.ui.components.util.formatMilliToDate
 import com.vanpra.composematerialdialogs.rememberMaterialDialogState
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -68,7 +73,7 @@ fun AudioNoteContainer(
             maxLines = 1
         )
         Text(
-            text = audioNote.date, //audioNote.date.format(DateTimeFormatter.ofPattern("dd.MM.yyyy в HH:mm")),
+            text = formatMilliToDate(audioNote.date) , //audioNote.date.format(DateTimeFormatter.ofPattern("dd.MM.yyyy в HH:mm")),
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.constrainAs(date) {
