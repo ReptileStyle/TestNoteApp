@@ -105,31 +105,35 @@ class MainViewModel @Inject constructor(
     fun playAudio(
         note: AudioNote
     ) {
-        isAudioPaused = false
-        if (note == playingAudioNote) {
-            player.resume()
-            playerJob?.cancel()
-            playerJob = viewModelScope.launch {
-                try {
-                    player.resume().collect { position ->
-                        currentPositionOfPlayingAudio = position
+        try {
+            isAudioPaused = false
+            if (note == playingAudioNote) {
+                player.resume()
+                playerJob?.cancel()
+                playerJob = viewModelScope.launch {
+                    try {
+                        player.resume().collect { position ->
+                            currentPositionOfPlayingAudio = position
+                        }
+                    } catch (e: AudioFinishedException) {
+                        playingAudioNote = null
                     }
-                } catch (e: AudioFinishedException) {
-                    playingAudioNote = null
+                }
+            } else {
+                playingAudioNote = note
+                playerJob?.cancel()
+                playerJob = viewModelScope.launch {
+                    try {
+                        player.playFile(File(context.dataDir.path, note.name)).collect { position ->
+                            currentPositionOfPlayingAudio = position
+                        }
+                    } catch (e: AudioFinishedException) {
+                        playingAudioNote = null
+                    }
                 }
             }
-        } else {
-            playingAudioNote = note
-            playerJob?.cancel()
-            playerJob = viewModelScope.launch {
-                try {
-                    player.playFile(File(context.dataDir.path, note.name)).collect { position ->
-                        currentPositionOfPlayingAudio = position
-                    }
-                } catch (e: AudioFinishedException) {
-                    playingAudioNote = null
-                }
-            }
+        }catch (e:Exception){
+            Toast.makeText(context,"Failed to play file",Toast.LENGTH_SHORT).show()
         }
     }
 
